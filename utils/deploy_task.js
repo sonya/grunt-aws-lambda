@@ -19,6 +19,8 @@ var deployTask = {};
 
 var proxy = require('proxy-agent');
 
+require('dotenv').config();
+
 deployTask.getHandler = function (grunt) {
 
     return function () {
@@ -39,7 +41,8 @@ deployTask.getHandler = function (grunt) {
             aliases: null,
             enablePackageVersionAlias: false,
             subnetIds: null,
-            securityGroupIds: null
+            securityGroupIds: null,
+            environmentVariables: null
         });
 	
         if (options.profile !== null) {
@@ -156,13 +159,22 @@ deployTask.getHandler = function (grunt) {
                };
             }
 
+            if (options.environmentVariables !== null) {
+                configParams.Environment = { Variables: options.environmentVariables };
+                for (var someKey in options.environmentVariables) {
+                    if ((!configParams.Environment.Variables[someKey]) && (process.env[someKey])) {
+                        configParams.Environment.Variables[someKey] = process.env[someKey];
+                    }
+                }
+            }
+
             var updateConfig = function (func_name, func_options) {
                 var deferred = Q.defer();
                 if (Object.keys(func_options).length > 0) {
                     func_options.FunctionName = func_name;
                     lambda.updateFunctionConfiguration(func_options, function (err, data) {
                         if (err) {
-                            grunt.fail.warn('Could not update config, check that values and permissions are valid');
+                            grunt.fail.warn('Could not update config: ' + err.message);
                             deferred.reject();
                         } else {
                             grunt.log.writeln('Config updated.');
