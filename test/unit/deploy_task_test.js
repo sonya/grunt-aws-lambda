@@ -365,6 +365,41 @@ deployTaskTest.testVpcConfig = function(test) {
     gruntMock.execute(deployTask.getHandler, harnessParams);
 };
 
+deployTaskTest.testEnvironmentVariables = function(test) {
+    test.expect(4);
+
+    var deployTask = require('../../utils/deploy_task');
+
+    process.env['DB_PASS'] = 'f4k3p4$$W0rd';
+
+    var harnessParams = {
+        options: {
+            environmentVariables: {
+                DB: 'my-db.amazonaws.com',
+                DB_USER: 'alice',
+                DB_PASS: 'this will be overridden'
+            }
+        },
+        config: defaultGruntConfig,
+        callback: function(harness) {
+            test.equal(harness.status, true);
+            test.equal(harness.output.length, 3);
+            test.equal(harness.output[2], 'Config updated.');
+            test.ok(lambdaAPIMock.updateFunctionConfiguration.calledWithMatch({
+                Environment: {
+                    Variables: {
+                        DB: 'my-db.amazonaws.com',
+                        DB_USER: 'alice',
+                        DB_PASS: 'f4k3p4$$W0rd'
+                    }
+                }
+            }));
+            test.done();
+        }
+    };
+    gruntMock.execute(deployTask.getHandler, harnessParams);
+};
+
 deployTaskTest.testHandler = function(test) {
     test.expect(4);
 

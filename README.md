@@ -435,6 +435,14 @@ A list of one or more security groups IDs in your VPC.
 
 If your Lambda function accesses resources in a VPC you must provide at least one security group and one subnet ID. These must belong to the same VPC
 
+##### options.environmentVariables
+Type: `Object`
+Default value: `null`
+
+A dictionary of key-value pairs to use as environment variables.
+If you have sensitive information you don't want to share in a repo, you may use
+a placeholder value the dictionary and supply the actual value in a `.env` file.
+
 #### Usage Examples
 
 ##### Default Options
@@ -505,6 +513,28 @@ grunt.initConfig({
 
 grunt.registerTask('deploy', ['lambda_package', 'lambda_deploy:default']);
 grunt.registerTask('deploy_prod', ['lambda_package', 'lambda_deploy:prod']);
+```
+
+##### Example with environment variables
+
+```js
+grunt.initConfig({
+    lambda_deploy: {
+        default: {
+            options: {
+                DB: 'warehouse',
+                DB_USER: 'lambda',
+                DB_PASS: 'see .env file'
+            }
+        }
+    }
+});
+```
+
+In a separate `.env` file that is ignored by version control:
+
+```
+DB_PASS=correct-horse-battery-staple
 ```
 
 ## Misc info

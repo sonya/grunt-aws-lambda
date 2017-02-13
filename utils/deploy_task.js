@@ -19,6 +19,8 @@ var deployTask = {};
 
 var proxy = require('proxy-agent');
 
+require('dotenv').config();
+
 deployTask.getHandler = function (grunt) {
 
     return function () {
@@ -39,7 +41,8 @@ deployTask.getHandler = function (grunt) {
             aliases: null,
             enablePackageVersionAlias: false,
             subnetIds: null,
-            securityGroupIds: null
+            securityGroupIds: null,
+            environmentVariables: null
         });
 	
         if (options.profile !== null) {
@@ -154,6 +157,15 @@ deployTask.getHandler = function (grunt) {
                  SubnetIds : options.subnetIds,
                  SecurityGroupIds : options.securityGroupIds
                };
+            }
+
+            if (options.environmentVariables !== null) {
+                configParams.Environment = { Variables: options.environmentVariables };
+                for (var someKey in options.environmentVariables) {
+                    if (process.env[someKey]) {
+                        configParams.Environment.Variables[someKey] = process.env[someKey];
+                    }
+                }
             }
 
             var updateConfig = function (func_name, func_options) {
