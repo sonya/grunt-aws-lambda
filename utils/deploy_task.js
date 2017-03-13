@@ -162,7 +162,7 @@ deployTask.getHandler = function (grunt) {
             if (options.environmentVariables !== null) {
                 configParams.Environment = { Variables: options.environmentVariables };
                 for (var someKey in options.environmentVariables) {
-                    if (process.env[someKey]) {
+                    if ((!configParams.Environment.Variables[someKey]) && (process.env[someKey])) {
                         configParams.Environment.Variables[someKey] = process.env[someKey];
                     }
                 }
@@ -174,7 +174,7 @@ deployTask.getHandler = function (grunt) {
                     func_options.FunctionName = func_name;
                     lambda.updateFunctionConfiguration(func_options, function (err, data) {
                         if (err) {
-                            grunt.fail.warn('Could not update config, check that values and permissions are valid');
+                            grunt.fail.warn('Could not update config: ' + err.message);
                             deferred.reject();
                         } else {
                             grunt.log.writeln('Config updated.');
