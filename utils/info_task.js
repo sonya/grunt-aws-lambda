@@ -80,7 +80,27 @@ infoTask.getHandler = function (grunt) {
             apiVersion: '2015-03-31'
         });
 
-        lambda.listVersionsByFunction({FunctionName: deploy_function}, function (err, data) {
+
+
+        var printVersionInfo = function(versionInfo) {
+            grunt.log.writeln('Version ' + versionInfo.Version + ':');
+            grunt.log.writeln('    Runtime: ' + versionInfo.Runtime);
+            grunt.log.writeln('    CodeSize: ' + versionInfo.CodeSize);
+            grunt.log.writeln('    Timeout: ' + versionInfo.Timeout);
+            grunt.log.writeln('    MemorySize: ' + versionInfo.MemorySize);
+            grunt.log.writeln('    VpcConfig: ' + JSON.stringify(versionInfo.VpcConfig));
+            grunt.log.writeln('    KMSKeyArn: ' + versionInfo.KMSKeyArn);
+
+            if ('Environment' in versionInfo && 'Variables' in versionInfo.Environment) {
+                grunt.log.writeln('    Environment Variables:');
+                for (var envVar in versionInfo.Environment.Variables) {
+                    var value = versionInfo.Environment.Variables[envVar];
+                    grunt.log.writeln('        ' + envVar + ': ' + value);
+                }
+            }
+        };
+
+        lambda.listAliases({FunctionName: deploy_function}, function (err, data) {
             if (err) {
                 if (err.statusCode === 404) {
                     grunt.fail.warn('Unable to find lambda function ' + deploy_function + ', verify the lambda function name and AWS region are correct.');
@@ -90,39 +110,41 @@ infoTask.getHandler = function (grunt) {
                 }
             }
 
-            var lastVersion;
-            var gruntDeployDescription = /from artifact ([\w_\-]+)/;
-            for (var i = 0; i < data.Versions.length; i++) {
-                lastVersion = data.Versions[i];
+            var aliasVersions = {};
 
-                var message = 'Version ' + lastVersion.Version +
-                    ' deployed ' + lastVersion.LastModified;
-
-                var match = gruntDeployDescription.exec(lastVersion.Description);
-                if (match != null) {
-                    var artifact = match[1];
-                    message += ' @ ' + artifact;
-                }
-
-                grunt.log.writeln(message);
+            for (var i = 0; i < data.Aliases.length; i++) {
+                var alias = data.Aliases[i];
+                aliasVersions[alias.FunctionVersion] = alias.Name;
             }
 
-            // latest version
-            grunt.log.writeln('Latest version config:');
-            grunt.log.writeln('    Runtime: ' + lastVersion.Runtime);
-            grunt.log.writeln('    CodeSize: ' + lastVersion.CodeSize);
-            grunt.log.writeln('    Timeout: ' + lastVersion.Timeout);
-            grunt.log.writeln('    MemorySize: ' + lastVersion.MemorySize);
-            grunt.log.writeln('    VpcConfig: ' + JSON.stringify(lastVersion.VpcConfig));
-            grunt.log.writeln('    KMSKeyArn: ' + lastVersion.KMSKeyArn);
+            lambda.listVersionsByFunction({FunctionName: deploy_function}, function (err, data) {
+                if (!err) {
+                    var lastVersion;
+                    var gruntDeployDescription = /from artifact ([\w_\-]+)/;
+                    for (var i = 0; i < data.Versions.length; i++) {
+                        var versionInfo = data.Versions[i];
 
-            if ('Environment' in lastVersion && 'Variables' in lastVersion.Environment) {
-                grunt.log.writeln('    Environment Variables:');
-                for (var envVar in lastVersion.Environment.Variables) {
-                    var value = lastVersion.Environment.Variables[envVar];
-                    grunt.log.writeln('        ' + envVar + ': ' + value);
+                        var message = 'Version ' + versionInfo.Version +
+                            ' deployed ' + versionInfo.LastModified;
+
+                        var match = gruntDeployDescription.exec(versionInfo.Description);
+                        if (match != null) {
+                            var artifact = match[1];
+                            message += ' @ ' + artifact;
+                        }
+
+                        grunt.log.writeln(message);
+
+                        if (versionInfo.Version in aliasVersions) {
+                            var alias = aliasVersions[versionInfo.Version];
+                            grunt.log.writeln('Alias "' + alias + '"');
+                            printVersionInfo(versionInfo);
+                        }
+                    }
+
+//                    printVersionInfo(lastVersion);
                 }
-            }
+            });
         });
     };
 };

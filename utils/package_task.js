@@ -46,6 +46,10 @@ packageTask.getHandler = function (grunt) {
         var archive_name = pkg.name;
 
         if (options.include_version) {
+            if (!pkg.version) {
+                var e = new Error('Package version not found. Make sure you specify a version in package.json');
+                throw e;
+            }
             archive_name += '_' + pkg.version.replace(/\./g, '-');
         }
 
